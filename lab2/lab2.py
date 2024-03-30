@@ -1,107 +1,85 @@
 import random
+import numpy as np
+from sklearn.metrics import mean_squared_error
 
 class Neuron:
-    def __init__(self, n):
-        # Инициализация весов случайными значениями
-        self.weights = [random.randint(1, 200) / 1000 for _ in range(n)]
+    def __init__(self, num_inputs):
+        self.weights = np.random.uniform(0.001, 0.2, size=num_inputs)
 
-    def predict(self, x: list) -> float:
-        # Предсказание на основе входных данных и весов
-        return x[0] * self.weights[0] + x[1] * self.weights[1]
+    def predict(self, inputs):
+        return np.dot(inputs, self.weights)
 
 class NeuralNetwork:
-    def __init__(self, n):
-        # Создание нейронов для нейронной сети
-        self.neurons = [Neuron(2) for _ in range(n)]
-        # Установка скорости обучения
-        self.a = 0.00005
+    def __init__(self, num_neurons, num_inputs, learning_rate=0.0001):
+        self.neurons = [Neuron(num_inputs) for _ in range(num_neurons)]
+        self.learning_rate = learning_rate
 
-    def predict(self, x: list):
-        # Предсказание на основе первого нейрона
-        return self.neurons[0].predict(x)
-    
-    def fit(self, x_train: list, y_train: list, x_test: list, y_test: list, learning_rate: float, desired_error: float, max_iterations: int):
-        for neuron in self.neurons:
-            neuron.weights = [random.randint(1, 200) / 1000 for _ in range(len(neuron.weights))]
+    def predict(self, inputs):
+        return np.mean([neuron.predict(inputs) for neuron in self.neurons])
 
-        self.a = learning_rate
-        mse_train = float('inf')
-        mse_test = float('inf')
-        iteration = 0
+    def fit(self, x_train, y_train, x_test, y_test, desired_error, max_iterations):
+        train_data = list(zip(x_train, y_train))
+        test_data = list(zip(x_test, y_test))
 
-        while mse_train > desired_error and iteration < max_iterations:
-            mse_train = 0
-            for i in range(len(x_train)):
-                y_pred = self.predict(x_train[i])
-                error = y_train[i] - y_pred
-                for j in range(len(self.neurons[0].weights)):
-                    self.neurons[0].weights[j] += self.a * error * x_train[i][j]
-                mse_train += error ** 2
-            mse_train /= len(x_train)
+        for _ in range(max_iterations):
+            for inputs, target in train_data:
+                inputs = np.array(inputs)  # Преобразуем входные данные в массив numpy
+                prediction = self.predict(inputs)
+                error = target - prediction
+                for neuron in self.neurons:
+                    neuron.weights += self.learning_rate * error * inputs
 
-            mse_test = 0
-            for i in range(len(x_test)):
-                y_pred = self.predict(x_test[i])
-                error = y_test[i] - y_pred
-                mse_test += error ** 2
-            mse_test /= len(x_test)
+            train_predictions = [self.predict(inputs) for inputs, _ in train_data]
+            train_mse = mean_squared_error(y_train, train_predictions)
 
-            iteration += 1
+            test_predictions = [self.predict(inputs) for inputs, _ in test_data]
+            test_mse = mean_squared_error(y_test, test_predictions)
 
-        print(f"Mean square error (train) -> {mse_train}")
-        print(f"Mean square error (test) -> {mse_test}")
-        
+            if train_mse < desired_error:
+                break
 
-        return self.neurons[0].weights
+        print(f"Mean square error (train) -> {train_mse}")
+        print(f"Mean square error (test) -> {test_mse}")
 
-    def fit1(self, x_train: list, y_train: list, x_test: list, y_test: list):
+        return [neuron.weights for neuron in self.neurons]
+
+    def fit1(self, x_train, y_train, x_test, y_test):
         mse_train = 0
         length_train = len(x_train)
 
-        # Обучение на обучающей выборке
         for i in range(length_train):
-            y_pred = self.predict(x_train[i])
-            # Вычисление среднеквадратичной ошибки на обучающей выборке
+            inputs = np.array(x_train[i])  # Преобразуем входные данные в массив numpy
+            y_pred = self.predict(inputs)
             mse_train += ((y_pred - y_train[i]) ** 2) / length_train
-            # Обновление весов нейрона
-            self.neurons[0].weights[0] += (y_train[i] - y_pred) / sum(self.neurons[0].weights)
-            self.neurons[0].weights[1] += (y_train[i] - y_pred) / sum(self.neurons[0].weights)
+            for neuron in self.neurons:
+                neuron.weights += (y_train[i] - y_pred) * self.learning_rate * inputs
 
-        # Оценка на тестовой выборке
-        mse_test = 0
-        length_test = len(x_test)
-        for i in range(length_test):
-            y_pred = self.predict(x_test[i])
-            mse_test += ((y_pred - y_test[i]) ** 2) / length_test
+        mse_test = sum(((self.predict(inputs) - output) ** 2) / len(x_test) for inputs, output in zip(x_test, y_test))
 
         print(f"Mean square error (train) -> {mse_train}")
         print(f"Mean square error (test)  -> {mse_test}")
 
-        return [self.neurons[0].weights[0], self.neurons[0].weights[1]]
+        return [neuron.weights for neuron in self.neurons]
 
-    def fit2(self, x_train: list, y_train: list, x_test: list, y_test: list):
+    def fit2(self, x_train, y_train, x_test, y_test):
         mse_train = 0
         length_train = len(x_train)
 
-        # Обучение на обучающей выборке
         for i in range(length_train):
-            y_pred = self.predict(x_train[i])
+            inputs = np.array(x_train[i])  # Преобразуем входные данные в массив numpy
+            y_pred = self.predict(inputs)
             mse_train += ((y_pred - y_train[i]) ** 2) / length_train
-            # Обновление весов нейрона с учетом скорости обучения
-            self.neurons[0].weights[0] -= self.a * (y_pred - y_train[i]) * x_train[i][0]
-            self.neurons[0].weights[1] -= self.a * (y_pred - y_train[i]) * x_train[i][1]
+            for neuron in self.neurons:
+                neuron.weights -= self.learning_rate * (y_pred - y_train[i]) * inputs
 
-        # Оценка на тестовой выборке
-        mse_test = 0
-        length_test = len(x_test)
-        for i in range(length_test):
-            y_pred = self.predict(x_test[i])
-            mse_test += ((y_pred - y_test[i]) ** 2) / length_test
+        mse_test = sum(((self.predict(inputs) - output) ** 2) / len(x_test) for inputs, output in zip(x_test, y_test))
 
         print(f"Mean square error (train) -> {mse_train}")
         print(f"Mean square error (test)  -> {mse_test}")
 
-        return [self.neurons[0].weights[0], self.neurons[0].weights[1]]
+        return [neuron.weights for neuron in self.neurons]
+
+# Пример использования:
 
 # Чтение данных из файла CSV
 data_file = 'data.csv'
@@ -123,21 +101,17 @@ test_data = data[split_index:]
 x_train, y_train = zip(*train_data)
 x_test, y_test = zip(*test_data)
 
-nn = NeuralNetwork(1)
-nn1 = NeuralNetwork(1)
-nn2 = NeuralNetwork(1)
+# Создание и обучение нейронной сети
+num_neurons = 1
+num_inputs = len(x_train[0])
+nn = NeuralNetwork(num_neurons=num_neurons, num_inputs=num_inputs)
+trained_weights = nn.fit(x_train, y_train, x_test, y_test, desired_error=0.01, max_iterations=1000)
+print("Trained weights (fit):", trained_weights)
 
 print("------------")
-print(nn1.fit1(x_train, y_train, x_test, y_test))
-print("------------")
-print(nn2.fit2(x_train, y_train, x_test, y_test))
-print("------------")
+trained_weights_fit1 = nn.fit1(x_train, y_train, x_test, y_test)
+print("Trained weights (fit1):", trained_weights_fit1)
 
-# Задаем параметры обучения
-learning_rate = 0.1
-desired_error = 0.01
-max_iterations = 1000
-
-# Обучаем нейронную сеть
 print("------------")
-#print(nn.fit(x_train, y_train, x_test, y_test, learning_rate, desired_error, max_iterations))
+trained_weights_fit2 = nn.fit2(x_train, y_train, x_test, y_test)
+print("Trained weights (fit2):", trained_weights_fit2)
