@@ -4,71 +4,37 @@ from sklearn.metrics import mean_squared_error
 
 class Neuron:
     def __init__(self, num_inputs: int):
-        if num_inputs <= 0:
-            raise ValueError("Количество входов должно быть положительным числом.")
-        self.weights = np.random.uniform(0.001, 0.2, size=num_inputs)
+        self.weights = np.random.uniform(0.001, 0.2, num_inputs)
+        self.accuracy = 0.1
 
-    def predict(self, inputs: list) -> float:
-        if len(inputs) != len(self.weights):
-            raise ValueError("Количество входных данных должно совпадать с количеством весов.")
-        return np.dot(inputs, self.weights)
-
+    def predict(self, x: list) -> float:
+        return np.dot(x, self.weights)
 
 class NeuralNetwork:
-    def __init__(self, num_neurons: int, num_inputs: int, learning_rate: float = 0.0001) -> None:
-        self.neurons: List[Neuron] = [Neuron(num_inputs) for _ in range(num_neurons)]
-        self.learning_rate: float = learning_rate
+    def __init__(self, num_neurons: int):
+        self.neurons: List[Neuron] = [Neuron(2) for _ in range(num_neurons)]
+        self.learning_rate: float = 1
+        
+    def predict(self, inputs: List[float]) -> list:
+        return [neuron.predict(inputs) for neuron in self.neurons]
 
-    def predict(self, inputs: List[float]) -> float:
-        predictions = [neuron.predict(inputs) for neuron in self.neurons]
-        return np.mean(predictions)
+    def fit(self, x : list, y : list):
+        train_data = list(zip(x, y))
 
-    def fit(self, x_train, y_train, x_test, y_test, desired_error, max_iterations):
-        train_data = list(zip(x_train, y_train))
-        test_data = list(zip(x_test, y_test))
-
-        for _ in range(max_iterations):
+        for _ in range(1000):
             for inputs, target in train_data:
-                inputs = np.array(inputs)  # Преобразуем входные данные в массив numpy
+                inputs = np.array(inputs)
                 prediction = self.predict(inputs)
-                error = target - prediction
+                error = target - prediction[0]
                 for neuron in self.neurons:
-                    neuron.weights += self.learning_rate * error * inputs
+                    print(prediction[0])
+                    # neuron.weights += (self.learning_rate - prediction[0]) / np.sum(neuron.weights)
 
-            train_predictions = [self.predict(inputs) for inputs, _ in train_data]
-            train_mse = mean_squared_error(y_train, train_predictions)
-
-            test_predictions = [self.predict(inputs) for inputs, _ in test_data]
-            test_mse = mean_squared_error(y_test, test_predictions)
-
-            if train_mse < desired_error:
-                break
+        predicted = self.predict(x)
+        train_mse = mean_squared_error(y, predicted[0])
 
         print(f"Mean square error (train) -> {train_mse}")
-        print(f"Mean square error (test) -> {test_mse}")
-
-        return [neuron.weights for neuron in self.neurons]
-
-    def fit1(self, x_train, y_train, x_test, y_test):
-        mse_train = 0
-        length_train = len(x_train)
-
-        for i in range(length_train):
-            inputs = np.array(x_train[i])  # Преобразуем входные данные в массив numpy
-            y_pred = self.predict(inputs)
-            mse_train += ((y_pred - y_train[i]) ** 2) / length_train
-            for neuron in self.neurons:
-                neuron.weights += (y_train[i] - y_pred) * self.learning_rate * inputs
-
-        mse_test = sum(((self.predict(inputs) - output) ** 2) / len(x_test) for inputs, output in zip(x_test, y_test))
-
-        print(f"Mean square error (train) -> {mse_train}")
-        print(f"Mean square error (test)  -> {mse_test}")
-
-        return [neuron.weights for neuron in self.neurons]
-
-
-# Чтение данных из файла CSV
+        
 data = []
 with open('data.csv', 'r') as file:
     for line in file:
@@ -78,25 +44,12 @@ with open('data.csv', 'r') as file:
             y = float(values[2])
             data.append((x, y))
 
-# Разделение данных на обучающую и тестовую выборки
 split_index = int(0.8 * len(data))
 train_data = data[:split_index]
 test_data = data[split_index:]
 
-# Разделение x и y для обучающей и тестовой выборок
 x_train, y_train = zip(*train_data)
 x_test, y_test = zip(*test_data)
 
-# Создание и обучение нейронной сети
-num_neurons = 1
-num_inputs = len(x_train[0])
-
-nn1 = NeuralNetwork(num_neurons = num_neurons, num_inputs = num_inputs)
-trained_weights = nn1.fit(x_train, y_train, x_test, y_test, desired_error=0.01, max_iterations=1000)
-print("Trained weights (fit):", trained_weights)
-
-print("------------")
-
-nn2 = NeuralNetwork(num_neurons = num_neurons, num_inputs = num_inputs)
-trained_weights_fit1 = nn2.fit1(x_train, y_train, x_test, y_test)
-print("Trained weights (fit1):", trained_weights_fit1)
+neural_network_1 = NeuralNetwork(num_neurons = 1)
+neural_network_1.fit(x_train, y_train)
