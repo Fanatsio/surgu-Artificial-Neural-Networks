@@ -19,7 +19,7 @@ class Neuron:
 
 class NeuralNetwork:
     def __init__(self, num_neurons: int):
-        self.neurons: List[Neuron] = [Neuron(6) for _ in range(num_neurons)]
+        self.neurons: List[Neuron] = [Neuron(2) for _ in range(num_neurons)]
 
     def predict(self, inputs: List[float]) -> list:
         return [neuron.predict(inputs) for neuron in self.neurons]
@@ -39,7 +39,7 @@ class NeuralNetwork:
             print(train_mse)
 
 data = []
-with open('2lab_data.csv', 'r') as file:
+with open('data.csv', 'r') as file:
     for line in file:
         if not line.startswith('x1'):
             values = line.strip().split(',')
@@ -54,7 +54,7 @@ test_data = data[split_index:]
 x_train, y_train = zip(*train_data)
 x_test, y_test = zip(*test_data)
 
-neural_network_1 = NeuralNetwork(num_neurons=3)
+neural_network_1 = NeuralNetwork(num_neurons=1)
 neural_network_1.fit(x_train, y_train)
 
 predictions = [neural_network_1.predict(x) for x in x_test]
