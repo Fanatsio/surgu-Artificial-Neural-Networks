@@ -1,146 +1,86 @@
-import random
-import math
+import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
 
 class Neuron:
-    def __init__(self, num_inputs):
-        self.weights = [random.randint(1, 200) / 1000 for _ in range(num_inputs)]
-        self.bias = random.randint(1, 200) / 1000
-        self.output = 0
-        self.delta = 0
+    def __init__(self, num_inputs: int):
+        self.weights = np.random.uniform(0.001, 0.2, num_inputs)
+        self.learning_rate = 1e-5
 
-    def sigmoid(self, x):
-        return x
-
-    def sigmoid_derivative(self, x):
-        return 1
-
-    def feed_forward(self, inputs):
-        weighted_sum = sum(w * x for w, x in zip(self.weights, inputs)) + self.bias
-        self.output = self.sigmoid(weighted_sum)
-        return self.output
-
-class NeuralLayer:
-    def __init__(self, num_neurons, num_inputs):
-        self.neurons = [Neuron(num_inputs) for _ in range(num_neurons)]
-
-    def feed_forward(self, inputs):
-        return [neuron.feed_forward(inputs) for neuron in self.neurons]
+    def predict(self, x: np.ndarray) -> float:
+        return sigmoid(np.dot(x, self.weights))
+    
+    def update_weights(self, x: np.ndarray, error: float):
+        delta = error * sigmoid_derivative(self.predict(x))
+        self.weights += self.learning_rate * delta * x
 
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_sizes, output_size):
-        self.input_size = input_size
-        self.hidden_sizes = hidden_sizes
-        self.output_size = output_size
-        self.layers = []
+    def __init__(self, input_size, hidden_size, output_size):
+        # Инициализация слоёв сети
+        self.hidden_layer = [Neuron(input_size) for _ in range(hidden_size)]
+        self.output_layer = [Neuron(hidden_size) for _ in range(output_size)]
 
-        prev_layer_size = input_size
-        for layer_size in hidden_sizes:
-            self.layers.append(NeuralLayer(layer_size, prev_layer_size))
-            prev_layer_size = layer_size
+    def predict(self, inputs: np.ndarray) -> np.ndarray:
+        hidden_outputs = np.array([neuron.predict(inputs) for neuron in self.hidden_layer])
+        final_outputs = np.array([neuron.predict(hidden_outputs) for neuron in self.output_layer])
+        return final_outputs
 
-        self.layers.append(NeuralLayer(output_size, prev_layer_size))
+    def backpropagate(self, inputs: np.ndarray, y: np.ndarray):
+        # Прямое распространение
+        hidden_outputs = np.array([neuron.predict(inputs) for neuron in self.hidden_layer])
+        final_outputs = np.array([neuron.predict(hidden_outputs) for neuron in self.output_layer])
+        
+        # Вычисление ошибки для выходного слоя
+        output_errors = y - final_outputs
+        
+        # Обновление весов выходного слоя
+        for i, neuron in enumerate(self.output_layer):
+            neuron.update_weights(hidden_outputs, output_errors[i])
+        
+        # Вычисление ошибки для скрытого слоя
+        hidden_errors = np.dot(output_errors, np.array([neuron.weights for neuron in self.output_layer]))
+        
+        # Обновление весов скрытого слоя
+        for i, neuron in enumerate(self.hidden_layer):
+            neuron.update_weights(inputs, hidden_errors[i])
 
-    def feed_forward(self, inputs):
-        layer_output = inputs
-        for layer in self.layers:
-            layer_output = layer.feed_forward(layer_output)
-        return layer_output
+    def fit(self, x_train: np.ndarray, y_train: np.ndarray, epochs=1000):
+        for epoch in range(epochs):
+            for x, y in zip(x_train, y_train):
+                self.backpropagate(np.array(x), np.array(y))
+            
+            if epoch % 100 == 0:
+                print(f'Epoch {epoch} Weights:')
+                self.print_weights()
 
-    def backpropagate(self, inputs, targets, learning_rate):
-        layer_outputs = [inputs]
-        for layer in self.layers:
-            layer_outputs.append(layer.feed_forward(layer_outputs[-1]))
+    def print_weights(self):
+        print("Hidden Layer Weights:")
+        for i, neuron in enumerate(self.hidden_layer):
+            print(f"Neuron {i+1}: {neuron.weights}")
+        print("Output Layer Weights:")
+        for i, neuron in enumerate(self.output_layer):
+            print(f"Neuron {i+1}: {neuron.weights}")
 
-        output_layer = self.layers[-1]
-        for i, neuron in enumerate(output_layer.neurons):
-            error = targets[i] - neuron.output
-            neuron.delta = error * neuron.sigmoid_derivative(neuron.output)
+# Загрузка данных из файла 3lab_data.csv
+data = np.genfromtxt('3lab_data.csv', delimiter=',', skip_header=1)
+x_data = data[:, :3]
+y_data = data[:, 3:]
 
-        for layer_index in range(len(self.layers) - 2, -1, -1):
-            current_layer = self.layers[layer_index]
-            next_layer = self.layers[layer_index + 1]
+# Разделение на тренировочные и тестовые данные
+split_index = int(0.8 * len(data))
+x_train, x_test = x_data[:split_index], x_data[split_index:]
+y_train, y_test = y_data[:split_index], y_data[split_index:]
 
-            for i, neuron in enumerate(current_layer.neurons):
-                error = sum(neuron.weights[i] * next_neuron.delta for next_neuron in next_layer.neurons)
-                neuron.delta = error * neuron.sigmoid_derivative(neuron.output)
+# Создание и обучение сети
+nn = NeuralNetwork(input_size=3, hidden_size=3, output_size=2)
+nn.fit(x_train, y_train)
 
-        for layer_index in range(1, len(self.layers)):
-            current_layer = self.layers[layer_index]
-            prev_layer = self.layers[layer_index - 1]
+# Тестирование
+print("Final Weights After Training:")
+nn.print_weights()
 
-            for i, neuron in enumerate(current_layer.neurons):
-                for j, prev_neuron in enumerate(prev_layer.neurons):
-                    neuron.weights[j] += learning_rate * neuron.delta * prev_neuron.output
-                neuron.bias += learning_rate * neuron.delta
-        for neuron in self.layers[0].neurons:
-            for j in range(len(neuron.weights)):
-                neuron.weights[j] += learning_rate * neuron.delta * prev_neuron.output
-            neuron.bias += learning_rate * neuron.delta
-
-    def train(self, x, y, epochs, learning_rate):
-        for _ in range(epochs):
-            length = len(x)
-            for i in range(length):
-                self.backpropagate(x[i], y[i], learning_rate)
-        print([self.layers[len(self.layers) - 1].neurons[i].weights for i in range(len(self.layers[len(self.layers) - 1].neurons))])
-
-    def calc_mse(self, x_test, y_test):
-        length = len(x_test)
-        mse = 0
-        for i in range(length):
-            y_pred = self.predict(x_test[i])
-            for j in range(len(y_pred)):
-                mse += ((y_pred[j] - y_test[i][j]) ** 2) / length
-        print(mse)
-
-
-    def predict(self, x):
-        pred = x
-        for layer in self.layers:
-            temp = []
-            for neuron in layer.neurons:
-                temp.append(neuron.feed_forward(pred))
-            pred = temp.copy()
-        return pred
-
-
-f = open('2lab_data.csv', 'r')
-x = []
-y = []
-x_test = []
-y_test = []
-
-count = 0
-for line in f.read().split('\n'):
-    lst = line.split(',')
-    if count % 5:
-        x.append([int(lst[i]) for i in range(6)])
-        y.append([int(lst[6]), int(lst[7]), int(lst[8])])
-    else:
-        x_test.append([int(lst[i]) for i in range(6)])
-        y_test.append([int(lst[6]), int(lst[7]), int(lst[8])])
-    count += 1
-
-nn = NeuralNetwork(input_size=6, hidden_sizes=[3, 3], output_size=3)
-nn.train(x, y, epochs=1000, learning_rate=0.000000005)
-nn.calc_mse(x_test, y_test)
-
-f = open('data.csv', 'r')
-x = []
-y = []
-x_test = []
-y_test = []
-count = 0
-for line in f.read().split('\n'):
-    lst = line.split(';')
-    if count % 5:
-        x.append([int(lst[0]), int(lst[1])])
-        y.append([int(lst[2])])
-    else:
-        x_test.append([int(lst[0]), int(lst[1])])
-        y_test.append([int(lst[2])])
-    count += 1
-
-nn = NeuralNetwork(input_size=2, hidden_sizes=[2, 2, 2], output_size=1)
-nn.train(x, y, epochs=1000, learning_rate=0.000000005)
-nn.calc_mse(x_test, y_test)
+predictions = np.array([nn.predict(x) for x in x_test])
