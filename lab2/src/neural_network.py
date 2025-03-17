@@ -1,6 +1,5 @@
 from .neuron import Neuron
 
-
 class NeuralNetwork:
     def __init__(self, n_neurons, n_inputs):
         self.neurons = [Neuron(n_inputs) for _ in range(n_neurons)]
@@ -22,10 +21,10 @@ class NeuralNetwork:
                     error = target - output
                     neuron.update_weights_1(X[i], error, learning_rate)
                     total_error += error**2
-            #     print(f"i = {i}", f'Epoch {epoch+1}, Total Error: {total_error}', f"Error {error}",
-            #           f"Веса {neuron.weights}", f"Предикт {output}", f"Таргет {target}" )
-            # # Общий вывод по эпохе
-            # print(f"Epoch {epoch+1}, Total Error: {total_error}")
+                print(f"i = {i}", f"Эпоха {epoch+1}, Общая ошибка: {total_error}", f"Ошибка {error}",
+                      f"Веса {neuron.weights}", f"Предсказание {output}", f"Цель {target}" )
+            # Общий вывод по эпохе
+            print(f"Эпоха {epoch+1}, Общая ошибка: {total_error}")
 
     # Обучение по формуле (4)
     def fit_2(self, X, y, learning_rate=0.000001, epochs=1000):
@@ -37,8 +36,7 @@ class NeuralNetwork:
                     error = y[i][j] - output  # Используем целевое значение для конкретного нейрона
                     neuron.update_weights_2(X[i], error, learning_rate)
                     total_error += error ** 2
-                    print(f"i = {i}", f'Epoch {epoch + 1}, Total Error: {total_error}',
-                          f"Error {error}", f"Веса {neuron.weights}",
-                          f"Предикт {output}", f"Таргет {y[i][j]}")
+                print(f"i = {i}", f"Эпоха {epoch + 1}, Общая ошибка: {total_error}", f"Ошибка {error}", 
+                      f"Веса {neuron.weights}", f"Предсказание {output}", f"Цель {y[i][j]}")
             # Общий вывод по эпохе
-            print(f"Epoch {epoch+1}, Total Error: {total_error}")
+            print(f"Эпоха {epoch+1}, Общая ошибка: {total_error}")

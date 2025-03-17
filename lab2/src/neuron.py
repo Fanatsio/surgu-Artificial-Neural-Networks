@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Neuron:
     def __init__(self, n):
         self.weights = np.random.uniform(0.001, 0.02, n)
@@ -16,5 +15,3 @@ class Neuron:
     def update_weights_2(self, x, error, learning_rate):
         grad = -2 * error * np.array(x)
         self.weights -= learning_rate * grad
-
-
