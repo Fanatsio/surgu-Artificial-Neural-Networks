@@ -3,29 +3,29 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense
+import tensorflow as tf
 
-# Создание набора данных
+def sigm(x):
+    return tf.sin(x)
+
 X = np.arange(-20, 20, 0.1)
 y = np.sin(X)
 
-# Разделение на обучающую и тестовую выборки
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Создание модели
 model = Sequential()
-model.add(Dense(200, input_dim=1, activation='relu'))
-model.add(Dense(100, activation='relu'))
-model.add(Dense(50, activation='relu'))
-model.add(Dense(1, activation='linear'))
+model.add(Dense(64, input_dim=1, activation=sigm))
+model.add(Dense(32, activation=sigm))
+model.add(Dense(16, activation=sigm))
+model.add(Dense(1, activation=sigm))
 
-# Компиляция модели
 model.compile(loss='mean_squared_error', optimizer='adam')
 
 # Список для сохранения значений функции потерь
 history = []
 
 # Обучение модели с сохранением истории
-history = model.fit(X_train, y_train, epochs=1000, batch_size=32, verbose=1)
+history = model.fit(X_train, y_train, epochs=50, batch_size=16, verbose=1)
 
 # Получение предсказаний для всего диапазона значений X
 y_pred = model.predict(X)

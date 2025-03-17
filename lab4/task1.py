@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
 
-# 1. Создание набора данных
+# step. Создание набора данных
 x = np.arange(-20, 20, 0.1)
 y = x
 

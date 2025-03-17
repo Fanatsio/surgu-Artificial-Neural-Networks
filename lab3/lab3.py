@@ -2,12 +2,10 @@ from src.neural_network import NeuralNetwork
 import numpy as np
 import pandas as pd
 
-# Загрузка данных
-data = pd.read_csv('data/3lab_data.csv')
-X = data[['x1', 'x2', 'x3']].values  # Входные данные
+data = pd.read_csv('lab3/data/3lab_data.csv')
+X = data[['x1', 'x2', 'x3']].values
 y = data[['y1', 'y2']].values
 
-# Инициализация сети
 network = NeuralNetwork(n_inputs=3, n_hidden=3, n_outputs=2)
 
 # 1. Нормализация данных

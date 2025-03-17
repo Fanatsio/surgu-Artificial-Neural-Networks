@@ -1,7 +1,6 @@
 import numpy as np
 from .neuron import Neuron
 
-
 class NeuralNetwork:
     def __init__(self, n_inputs, n_hidden, n_outputs):
         # Создание скрытого слоя
@@ -50,8 +49,6 @@ class NeuralNetwork:
                     print(
                         f"i = {i}, Epoch {epoch + 1}, Error {error},"
                         f" Веса {neuron.weights}, Предикт {output}, Таргет {y[i][j]}")
-            # Общий вывод по эпохе
-            # print(f"Epoch {epoch + 1}, Total Error: {total_error}")
 
     def calculate_mse(self, X, y):
         total_error = 0
@@ -61,7 +58,6 @@ class NeuralNetwork:
                 total_error += (y[i][j] - outputs[j]) ** 2
         mse = total_error / (len(X) * len(y[0]))  # Учитываем количество примеров и выходов
         return mse
-
 
     def predict(self, X):
         # Предсказание

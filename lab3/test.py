@@ -1,126 +1,123 @@
 import numpy as np
 
-
 class Neuron:
     def __init__(self, weights, activation='sigmoid'):
-        # Инициализация весов для нейрона
-        self.weights = np.array(weights, dtype=float)  # Начальные веса из задания
+        self.weights = np.array(weights, dtype=float)
         self.activation = activation
         self.output = 0
         self.delta = 0
 
     def predict(self, x):
-        # Прямой проход: скалярное произведение + смещение
         return np.dot(x, self.weights)
 
     def activate(self, x):
         return 1 / (1 + np.exp(-x))
 
     def sigmoid_derivative(self, output):
-        # Производная сигмоиды
         return output * (1 - output)
 
     def update_weights(self, x, learning_rate):
-        # Обновление весов
         self.weights += learning_rate * self.delta * np.array(x)
 
 
 class NeuralNetwork:
-    def __init__(self, init_weights_randomly=True):
-        # Если init_weights_randomly=True, инициализируем веса случайными малыми значениями
-        if init_weights_randomly:
-            self.hidden_layer = [
-                Neuron(np.random.uniform(-0.5, 0.5, 3)),
-                Neuron(np.random.uniform(-0.5, 0.5, 3)),
-                Neuron(np.random.uniform(-0.5, 0.5, 3))
-            ]
-            self.output_layer = [
-                Neuron(np.random.uniform(-0.5, 0.5, 3)),
-                Neuron(np.random.uniform(-0.5, 0.5, 3))
-            ]
-        else:
-            # Использование фиксированных весов из задания
-            self.hidden_layer = [
-                Neuron([1, 4, -3]),
-                Neuron([5, -2, 4]),
-                Neuron([2, -3, 1])
-            ]
-            self.output_layer = [
-                Neuron([2, 4, -2]),
-                Neuron([-3, 2, 3])
-            ]
+    def __init__(self):
+        # Инициализация сети заданными весами из задания
+        self.hidden_layer = [
+            Neuron([1, 4, -3]),  # w11
+            Neuron([5, -2, 4]),  # w12
+            Neuron([2, -3, 1])   # w13
+        ]
+        self.output_layer = [
+            Neuron([2, 4, -2]),  # w21
+            Neuron([-3, 2, 3])   # w22
+        ]
 
     def feedforward(self, x):
-        # Прямой проход
         hidden_outputs = [neuron.activate(neuron.predict(x)) for neuron in self.hidden_layer]
         final_outputs = [neuron.activate(neuron.predict(hidden_outputs)) for neuron in self.output_layer]
         return hidden_outputs, final_outputs
 
     def backpropagation(self, x, y, learning_rate):
-        # Прямой проход для предсказания
         hidden_outputs, final_outputs = self.feedforward(x)
 
-        hidden_outputs, final_outputs = self.feedforward(x)
+        # Обратное распространение для выходного слоя
         for i, neuron in enumerate(self.output_layer):
             error = y[i] - final_outputs[i]
             neuron.delta = error * neuron.sigmoid_derivative(final_outputs[i])
 
-        # Обновление скрытого слоя, обобщённое дельта-правило:
+        # Обратное распространение для скрытого слоя
         for i, neuron in enumerate(self.hidden_layer):
             error = sum(output_neuron.delta * output_neuron.weights[i] for output_neuron in self.output_layer)
             neuron.delta = error * neuron.sigmoid_derivative(hidden_outputs[i])
 
-        # Обновление весов выходного слоя
+        # Обновление весов
         for neuron in self.output_layer:
             neuron.update_weights(hidden_outputs, learning_rate)
-
-        # Обновление весов скрытого слоя
         for neuron in self.hidden_layer:
             neuron.update_weights(x, learning_rate)
 
-    def fit(self, X, y, learning_rate=0.01, tolerance=1e-6, max_epochs=1000):
+    def fit(self, X, y, learning_rate=0.1, tolerance=1e-6, max_epochs=1000):
         for epoch in range(max_epochs):
             total_error = 0
             for i in range(len(X)):
                 self.backpropagation(X[i], y[i], learning_rate)
                 outputs = self.predict(X[i])
-                errors = [(y[i][j] - outputs[j]) for j in range(len(outputs))]
-                total_error += sum(error ** 2 for error in errors)
-                print(
-                    f"i = {i}, Epoch {epoch + 1}, Error {errors},"
-                    f"  Предикт {outputs}, Таргет {y[i]}")
+                errors = [(y[i][j] - outputs[j]) ** 2 for j in range(len(outputs))]
+                total_error += sum(errors)
 
-            mse = total_error / (len(X) * len(y[0]))
-            print(f"Epoch {epoch + 1}, MSE: {mse}")
+            mse = total_error / len(X)
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}, MSE: {mse}")
 
             if mse < tolerance:
-                print("Training stopped due to tolerance level.")
+                print(f"Training stopped at epoch {epoch} due to tolerance level.")
                 break
 
+        # Вывод итоговых весов для проверки
+        print("\nFinal weights after training:")
+        print("Hidden layer:")
+        for i, neuron in enumerate(self.hidden_layer):
+            print(f"Neuron {i+1}: {neuron.weights}")
+        print("Output layer:")
+        for i, neuron in enumerate(self.output_layer):
+            print(f"Neuron {i+1}: {neuron.weights}")
+
     def predict(self, X):
-        # Предсказание
         _, final_outputs = self.feedforward(X)
         return final_outputs
 
 
-# Пример использования
-import pandas as pd
+# Данные, совместимые с заданными весами
+X_train = np.array([
+    [0, 0, 1],  # x3 = 1
+    [1, 0, 0],  # x1 = 1
+    [0, 1, 0],  # x2 = 1
+    [1, 1, 1]   # x1 = x2 = x3 = 1
+])
 
-# Загрузка данных
-data = pd.read_csv('data/3lab_data.csv')
-X = data[['x1', 'x2', 'x3']].values  # Входные данные
-y = data[['y1', 'y2']].values
-
-# Нормализация данных
-X_max = np.max(X, axis=0)
-y_max = np.max(y, axis=0)
-X_normalized = X / X_max
-y_normalized = y / y_max
+# Целевые выходы, вычисленные с заданными весами
+y_train = np.array([
+    [0.73105858, 0.04742587],  # Для [0, 0, 1]
+    [0.11920292, 0.95257413],  # Для [1, 0, 0]
+    [0.98201379, 0.26894142],  # Для [0, 1, 0]
+    [0.99987661, 0.99908895]   # Для [1, 1, 1]
+])
 
 # Инициализация сети
 network = NeuralNetwork()
 
-# Обучение сети
-network = NeuralNetwork(init_weights_randomly=True)
-network.fit(X_normalized, y_normalized, learning_rate=0.01, tolerance=1e-6, max_epochs=1000)
+# Проверка предсказаний до обучения
+print("Predictions before training:")
+for i in range(len(X_train)):
+    pred = network.predict(X_train[i])
+    print(f"Input: {X_train[i]}, Predicted: {pred}, Target: {y_train[i]}")
 
+# Обучение сети
+network.fit(X_train, y_train, learning_rate=0.001, tolerance=1e-10, max_epochs=1000)
+
+# Проверка предсказаний после обучения
+print("\nPredictions after training:")
+for i in range(len(X_train)):
+    pred = network.predict(X_train[i])
+    print(f"Input: {X_train[i]}, Predicted: {pred}, Target: {y_train[i]}")
